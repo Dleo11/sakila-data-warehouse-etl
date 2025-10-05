@@ -1,18 +1,21 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://python.org)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://www.mysql.com/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.50-red.svg)](https://streamlit.io/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-# Sistema ETL: Sakila OLTP → Data Mart OLAP
+# Sistema ETL: Sakila OLTP → Data Mart OLAP + Dashboard Interactivo
 
-Proyecto académico de ETL que transforma datos de una base de datos transaccional (Sakila) a un modelo dimensional optimizado para análisis de negocio.
+Proyecto académico de ETL que transforma datos de una base de datos transaccional (Sakila) a un modelo dimensional optimizado para análisis de negocio, con dashboard interactivo en Streamlit.
 
 ## Descripción del Proyecto
 
 Este proyecto implementa un proceso ETL completo que extrae datos del sistema operacional Sakila (simulando una tienda de alquiler de películas), realiza validaciones de calidad, limpieza y transformaciones, para finalmente cargar los datos en un Data Mart con esquema estrella optimizado para consultas analíticas.
 
+**Nuevo:** Incluye dashboard interactivo desarrollado con Streamlit para visualización de datos en tiempo real.
+
 ### Objetivo
 
-Demostrar la diferencia de rendimiento entre consultas OLTP (Online Transaction Processing) sobre bases de datos normalizadas versus consultas OLAP (Online Analytical Processing) sobre modelos dimensionales desnormalizados.
+Demostrar la diferencia de rendimiento entre consultas OLTP (Online Transaction Processing) sobre bases de datos normalizadas versus consultas OLAP (Online Analytical Processing) sobre modelos dimensionales desnormalizados, con capacidad de análisis visual mediante dashboard web.
 
 ## Arquitectura del Sistema
 
@@ -34,10 +37,13 @@ Demostrar la diferencia de rendimiento entre consultas OLTP (Online Transaction 
 │  sakila_dw      │  → 4 Dimensiones + 1 Tabla de Hechos
 └────────┬────────┘
          │
-         ↓
-┌─────────────────┐
-│   Power BI      │  ← Dashboards y análisis de negocio
-└─────────────────┘
+         ├─────────────────┐
+         ↓                 ↓
+┌─────────────────┐  ┌─────────────────┐
+│   Streamlit     │  │   Power BI      │
+│   Dashboard     │  │   (Opcional)    │
+│  (Interactivo)  │  │                 │
+└─────────────────┘  └─────────────────┘
 ```
 
 ## Tecnologías Utilizadas
@@ -48,6 +54,8 @@ Demostrar la diferencia de rendimiento entre consultas OLTP (Online Transaction 
 - **Jupyter Notebook** - Desarrollo interactivo
 - **Pandas** - Manipulación de datos
 - **SQLAlchemy** - ORM y conexiones
+- **Streamlit** - Dashboard web interactivo
+- **Plotly** - Visualizaciones interactivas
 - **Power BI** - Visualización (opcional)
 
 ### Librerías Python
@@ -62,6 +70,9 @@ python-dotenv
 colorlog
 jupyter
 ipykernel
+streamlit
+plotly
+altair
 ```
 
 ## Requisitos Previos
@@ -82,7 +93,11 @@ cd ruta/del/proyecto
 ### 2. Instalar dependencias con UV
 
 ```bash
+# Dependencias principales
 uv add pandas numpy sqlalchemy pymysql cryptography python-dotenv colorlog jupyter ipykernel
+
+# Dependencias para dashboard
+uv add streamlit plotly
 ```
 
 ### 3. Configurar credenciales
@@ -129,6 +144,7 @@ appBigData/
 ├── .env.example                 # Plantilla de credenciales
 ├── .gitignore                   # Archivos excluidos
 ├── README.md                    # Este archivo
+├── STREAMLIT_DASHBOARD.md       # Documentación del dashboard
 ├── config/
 │   └── config.py                # Configuración centralizada
 ├── logs/
@@ -141,18 +157,32 @@ appBigData/
 ├── sql/
 │   ├── create_staging.sql      # Schema de staging
 │   └── create_datamart.sql     # Schema Data Mart
-└── src/
-    ├── __init__.py
-    ├── logger_config.py        # Sistema de logging
-    ├── extractor.py            # Módulo de extracción
-    ├── validator.py            # Validaciones de calidad
-    ├── staging.py              # Procesamiento staging
-    └── transformer.py          # Transformaciones DM
+├── src/
+│   ├── __init__.py
+│   ├── logger_config.py        # Sistema de logging
+│   ├── extractor.py            # Módulo de extracción
+│   ├── validator.py            # Validaciones de calidad
+│   ├── staging.py              # Procesamiento staging
+│   └── transformer.py          # Transformaciones DM
+└── streamlit_app/               # Dashboard interactivo
+    ├── app.py                   # Página principal
+    ├── pages/                   # Páginas del dashboard
+    │   ├── 1_📊_Ventas.py
+    │   ├── 2_🎬_Películas.py
+    │   ├── 3_📂_Categorías.py
+    │   └── 4_🏪_Tiendas.py
+    ├── components/              # Componentes reutilizables
+    │   ├── kpi_cards.py
+    │   ├── filters.py
+    │   └── charts.py
+    └── utils/                   # Utilidades
+        ├── db_connection.py
+        └── queries.py
 ```
 
 ## Uso del Sistema
 
-### Ejecución paso a paso (notebooks)
+### Opción 1: ETL Paso a Paso (Notebooks)
 
 ```bash
 # Iniciar Jupyter
@@ -164,30 +194,8 @@ uv run jupyter notebook
 # 3. notebooks/03_transformacion.ipynb
 ```
 
-### Orden de ejecución
+### Opción 2: ETL Automatizado (Script)
 
-1. **Extracción** (01_extraccion.ipynb)
-   - Extrae ~40,000 registros de Sakila
-   - Carga a staging con metadatos ETL
-   - Duración: ~30 segundos
-
-2. **Staging y Validaciones** (02_staging.ipynb)
-   - Validaciones PRE-limpieza
-   - Limpieza de duplicados, nulos, normalizaciones
-   - Validaciones POST-limpieza
-   - Registra auditoría de calidad
-   - Duración: ~20 segundos
-
-3. **Transformación** (03_transformacion.ipynb)
-   - Crea modelo estrella
-   - Puebla 4 dimensiones
-   - Agrega datos en tabla de hechos
-   - Genera vistas analíticas
-   - Duración: ~40 segundos
-
-### Ejecución automatizada (script orquestador)
-
-Para ejecutar todo el flujo ETL de una vez:
 ```bash
 # Extracción completa (primera vez)
 uv run python main_etl.py
@@ -197,9 +205,38 @@ uv run python main_etl.py --incremental
 
 # Sin confirmación (para automatización)
 uv run python main_etl.py --force
+```
 
-# Omitir validaciones (no recomendado)
-uv run python main_etl.py --skip-validation
+### Opción 3: Dashboard Interactivo (Streamlit)
+
+```bash
+# Ejecutar dashboard
+uv run streamlit run streamlit_app/app.py
+
+# El dashboard se abrirá en: http://localhost:8501
+```
+
+## Dashboard Interactivo Streamlit
+
+### Características del Dashboard
+
+- **Página Principal**: KPIs generales, resumen ejecutivo y visualizaciones clave
+- **Análisis de Ventas**: Tendencias temporales, comparativas por tienda y categoría
+- **Análisis de Películas**: Top rankings, clasificaciones, correlaciones
+- **Análisis de Categorías**: Performance por género, evolución temporal
+- **Análisis de Tiendas**: Comparativas, gráficos radar, evolución individual
+
+### Funcionalidades
+
+- Filtros dinámicos por fecha, categoría y tienda
+- Exportación de datos a CSV
+- Visualizaciones interactivas con Plotly
+- Cache inteligente para mejor performance
+- Responsive design para diferentes dispositivos
+
+### Capturas de Pantalla
+
+(Ver documentación completa en [STREAMLIT_DASHBOARD.md](STREAMLIT_DASHBOARD.md))
 
 ## Modelo de Datos
 
@@ -423,6 +460,14 @@ TRUNCATE TABLE dim_tiempo;
 SET FOREIGN_KEY_CHECKS = 1;
 ```
 
+### Dashboard no carga datos
+
+Verificar:
+1. ETL ejecutado correctamente
+2. Base de datos sakila_dw poblada
+3. Credenciales en .env correctas
+4. Conexión MySQL activa
+
 ## Limitaciones Conocidas
 
 1. Campo `location` (GEOMETRY) de tabla `address` excluido por incompatibilidad
@@ -435,35 +480,46 @@ SET FOREIGN_KEY_CHECKS = 1;
 - Agregar soporte para múltiples fuentes (web, APIs)
 - Implementar particionamiento de fact_ventas por fecha
 - Agregar índices columnares para queries más complejas
-- Dashboard interactivo con Streamlit
+- Predicciones con Machine Learning
 - Tests unitarios para módulos ETL
+- Autenticación en dashboard
+- Deployment en cloud
 
 ## Requisitos Funcionales Implementados
 
-- RF1: Extracción de datos de Sakila
-- RF2: Staging / área intermedia
-- RF3-4: Transformaciones analíticas / Data Mart
-- RF5: Consultas analíticas / reporting
-- RF6: Integración con Power BI (preparado)
-- RF7: Auditoría / logging
-- RF8: Validaciones de calidad de datos
-- RF9: (Implícito) Manejo de errores
-- RF10: Orquestación del proceso
+- RF1: Extracción de datos de Sakila ✅
+- RF2: Staging / área intermedia ✅
+- RF3-4: Transformaciones analíticas / Data Mart ✅
+- RF5: Consultas analíticas / reporting ✅
+- RF6: Visualización interactiva (Streamlit) ✅
+- RF7: Auditoría / logging ✅
+- RF8: Validaciones de calidad de datos ✅
+- RF9: Manejo de errores ✅
+- RF10: Orquestación del proceso ✅
 
 ## Requisitos No Funcionales Cumplidos
 
-- Performance: ETL completo < 2 minutos
-- Escalabilidad: Arquitectura modular extensible
-- Confiabilidad: Manejo de errores y reintentos
-- Seguridad: Credenciales en .env, no en código
-- Mantenibilidad: Código modular y documentado
-- Documentación: README, docstrings, comentarios
+- Performance: ETL completo < 2 minutos ✅
+- Escalabilidad: Arquitectura modular extensible ✅
+- Confiabilidad: Manejo de errores y reintentos ✅
+- Seguridad: Credenciales en .env, no en código ✅
+- Mantenibilidad: Código modular y documentado ✅
+- Usabilidad: Dashboard intuitivo y responsive ✅
+- Documentación: README, docstrings, comentarios ✅
+
+## Documentación Adicional
+
+- **[STREAMLIT_DASHBOARD.md](STREAMLIT_DASHBOARD.md)** - Guía completa del dashboard
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Arquitectura técnica del sistema
+- **[DATA_DICTIONARY.md](DATA_DICTIONARY.md)** - Diccionario de datos completo
 
 ## Autor
-Leodan Merino Daza
-Proyecto académico - SENATI Octavo Ciclo
+
+Leodan Merino Daza  
+Proyecto académico - SENATI Octavo Ciclo  
 Curso: Big Data y Análisis de Datos
 
 ## Licencia
 
 Proyecto educativo - Uso académico
+<e>
